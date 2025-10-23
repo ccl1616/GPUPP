@@ -15,7 +15,7 @@ A clean, modular pipeline for monitoring and recording GPU power usage for each 
 ## Requirements
 
 ```bash
-pip install torch transformers pynvml pandas
+pip install torch transformers nvidia-ml-py pandas
 ```
 
 **Note:** Requires NVIDIA GPU with NVML support
@@ -25,7 +25,7 @@ pip install torch transformers pynvml pandas
 ### Installation
 
 ```bash
-pip install torch transformers pynvml pandas
+pip install torch transformers nvidia-ml-py pandas
 ```
 
 ### Execution Instructions

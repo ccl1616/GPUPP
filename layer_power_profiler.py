@@ -353,12 +353,12 @@ class LayerPowerProfiler:
         
         # Top power consumers
         print("\nTop 10 Power Consumers:")
-        top_power = df.nlargest(10, 'avg_power_w')[['layer_name', 'avg_power_w', 'duration_ms', 'energy_j']]
+        top_power = df.nlargest(10, 'avg_power_w')[['layer_name', 'exec_id', 'avg_power_w', 'duration_ms', 'energy_j']]
         print(top_power.to_string(index=False))
         
         # Top time consumers
         print("\nTop 10 Time Consumers:")
-        top_time = df.nlargest(10, 'duration_ms')[['layer_name', 'duration_ms', 'avg_power_w', 'energy_j']]
+        top_time = df.nlargest(10, 'duration_ms')[['layer_name', 'exec_id', 'duration_ms', 'avg_power_w', 'energy_j']]
         print(top_time.to_string(index=False))
         
         print("\n" + "="*80)

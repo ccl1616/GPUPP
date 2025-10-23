@@ -36,6 +36,10 @@ def example_simple_forward():
     # Show results
     profiler.print_summary()
     profiler.save_results("simple_forward_profile.csv")
+    
+    # Note: The save_results method automatically creates a top 10 CSV file
+    # You can also manually save top 10 power consumers:
+    # profiler.save_top10_power_consumers("simple_forward_profile.csv")
 
 
 # Example 2: Profile LLaMA text generation
@@ -74,6 +78,7 @@ def example_llama_generation():
     # Show results
     profiler.print_summary()
     profiler.save_results("llama_generation_profile.csv")
+    # This automatically creates llama_generation_profile_top10.csv
     
     # Get summary stats
     summary = profiler.get_summary_stats()

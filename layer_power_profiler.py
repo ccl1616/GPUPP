@@ -298,7 +298,7 @@ class LayerPowerProfiler:
         return pd.DataFrame(data)
     
     def save_results(self, filename: str = "layer_power_profile.csv"):
-        """Save results to CSV file"""
+        """Save results to CSV file and automatically save top 10 power consumers"""
         df = self.get_results_dataframe()
         
         if df.empty:
@@ -307,6 +307,29 @@ class LayerPowerProfiler:
         
         df.to_csv(filename, index=False)
         print(f"Results saved to {filename}")
+        
+        # Automatically save top 10 power consumers
+        self.save_top10_power_consumers(filename)
+    
+    def save_top10_power_consumers(self, base_filename: str = "layer_power_profile.csv"):
+        """Save top 10 power consumers to a separate CSV file"""
+        df = self.get_results_dataframe()
+        
+        if df.empty:
+            print("No results to save for top 10 power consumers.")
+            return
+        
+        # Get top 10 power consumers with exec_id included
+        top_power = df.nlargest(10, 'avg_power_w')[['layer_name', 'exec_id', 'avg_power_w', 'duration_ms', 'energy_j']]
+        
+        # Generate filename for top 10 CSV
+        import os
+        base_name = os.path.splitext(base_filename)[0]
+        top10_filename = f"{base_name}_top10.csv"
+        
+        # Save to CSV
+        top_power.to_csv(top10_filename, index=False)
+        print(f"Top 10 power consumers saved to {top10_filename}")
     
     def get_summary_stats(self) -> pd.DataFrame:
         """Get summary statistics per layer"""

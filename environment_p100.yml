@@ -1,0 +1,54 @@
+name: gpu-power-profiler-p100
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python version
+  - python=3.10
+
+  # Core PyTorch ecosystem (Tesla P100 compatible versions)
+  - pytorch=2.0.1
+  - torchvision=0.15.2
+  - torchaudio=2.0.2
+  - cudatoolkit=11.7
+
+  # Transformers and related ML libraries
+  - transformers=4.35.0
+  - accelerate=0.24.0
+  - huggingface_hub=0.17.3
+  - tokenizers=0.14.1
+  - safetensors=0.6.2
+
+  # Data processing and analysis
+  - pandas=2.3.3
+  - numpy=2.2.6
+
+  # GPU monitoring
+  - nvidia-ml-py=13.580.82
+
+  # Additional dependencies
+  - pip
+  - pip:
+    # PyTorch CUDA 11.7 specific builds (required for Tesla P100)
+    - torch==2.0.1+cu117
+    - torchvision==0.15.2+cu117
+    - torchaudio==2.0.2+cu117
+    - --index-url https://download.pytorch.org/whl/cu117
+
+# Environment metadata
+variables:
+  CUDA_VERSION: "11.7"
+  PYTORCH_VERSION: "2.0.1"
+  TRANSFORMERS_VERSION: "4.35.0"
+  GPU_COMPATIBILITY: "Tesla P100 (CUDA 6.0)"
+
+# Instructions for usage
+# To create this environment:
+#   conda env create -f environment_p100.yml
+# To activate:
+#   conda activate gpu-power-profiler-p100
+# To verify installation:
+#   python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"

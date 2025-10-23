@@ -1,0 +1,31 @@
+# GPU Power Profiler - Tesla P100 Compatible Requirements
+# Compatible with Tesla P100 GPU (CUDA capability 6.0)
+
+# PyTorch ecosystem (CUDA 11.7 builds for Tesla P100 compatibility)
+torch==2.0.1+cu117
+torchvision==0.15.2+cu117
+torchaudio==2.0.2+cu117
+--index-url https://download.pytorch.org/whl/cu117
+
+# Transformers and ML libraries
+transformers==4.35.0
+accelerate==0.24.0
+huggingface-hub==0.17.3
+tokenizers==0.14.1
+safetensors==0.6.2
+
+# Data processing
+pandas==2.3.3
+numpy==2.2.6
+
+# GPU monitoring
+nvidia-ml-py==13.580.82
+
+# Additional dependencies
+tqdm>=4.27
+filelock>=3.0.0
+packaging>=20.0
+pyyaml>=5.1
+regex!=2019.12.17
+requests>=2.25.0
+psutil>=5.8.0

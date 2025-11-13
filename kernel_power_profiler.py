@@ -7,10 +7,12 @@ high-frequency NVML power polling thread.
 
 import torch
 import torch.profiler
+from torch.autograd import DeviceType
 import pandas as pd
 import time
 from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass, asdict
+import os
 from common import PowerLoggerThread, PowerSample, GPUMonitor # Use shared utilities
 
 # Set a very low sleep time for high-frequency polling
@@ -29,11 +31,7 @@ class KernelMetrics:
         return asdict(self)
 
 class KernelPowerProfiler:
-    """
-    Main class for profiling power consumed by individual CUDA kernels.
-    Uses torch.profiler for kernel timeline and a dedicated thread for power logging.
-    """
-    
+    # ... (init, profiling, and integration methods remain the same)
     def __init__(self, model: torch.nn.Module, device_index: int = 0):
         self.model = model
         self.device_index = device_index
@@ -43,14 +41,10 @@ class KernelPowerProfiler:
 
     def _get_kernel_timeline(self, inputs: Any) -> List[Dict]:
         """
-        Uses torch.profiler to capture microsecond-accurate kernel events.
-        
-        Returns:
-            List of kernel event dictionaries with timing and name info.
+        Uses torch.profiler to capture microsecond-accurate kernel events (Averaged for simplicity).
         """
         print("  Capturing CUDA timeline with torch.profiler...")
         
-        # Use high-resolution perf_counter as a common CPU anchor time
         cpu_start_time = time.perf_counter() 
         
         with torch.profiler.profile(
@@ -58,51 +52,31 @@ class KernelPowerProfiler:
                 torch.profiler.ProfilerActivity.CPU,
                 torch.profiler.ProfilerActivity.CUDA,
             ],
-            # Use record_shapes to get better context, although performance impact is higher
             record_shapes=False, 
             profile_memory=False,
-            # Schedule controls when to start/stop the detailed tracing
             schedule=torch.profiler.schedule(wait=1, warmup=1, active=2, repeat=1),
             on_trace_ready=None 
         ) as p:
-            # Perform a full run (or multiple runs) to fill the trace
-            for _ in range(4): # 1 wait, 1 warmup, 2 active
+            for _ in range(4):
                 with torch.no_grad():
                     _ = self.model(**inputs) if isinstance(inputs, dict) else self.model(inputs)
                 p.step()
 
-        # Export trace data
-        # filter_fn keeps only the relevant kernel events
-        kernel_events = p.key_averages(group_by_input_shape=False).table(
-            sort_by="cuda_time_total", row_limit=-1, header=True
-        ).split('\n')
+        # Get events sorted by CUDA time
+        events = p.key_averages(group_by_input_shape=False)
+        sorted_events = sorted(events, key=lambda evt: evt.cuda_time_total, reverse=True)
         
-        # Simple parsing logic (can be improved with JSON export from profiler)
         kernel_data = []
-        for line in kernel_events[4:]: # Skip header lines
-            parts = line.strip().split()
-            if len(parts) < 5 or parts[0].startswith('Total'): continue
-            
-            # The profiler usually reports 'cuda_time_total' and 'self_cuda_time_total'
-            # We are extracting the kernel name from the first column
-            name = parts[0]
-            # Prof. output uses "us" (microseconds), convert to ms
-            avg_duration_us = float(parts[2].replace(',', '')) 
-            
-            # NOTE: We are NOT getting start/end times here, only averages.
-            # To get accurate start/end times per kernel *launch*, we would need to 
-            # parse the raw JSON trace (e.g., p.export_chrome_trace()). 
-            # For this simplified example, we'll use the average duration 
-            # as a placeholder for the single kernel launch time.
-            
-            # A full implementation would parse the detailed trace to get 
-            # event-specific start/end times (time_gpu_us).
-            
-            kernel_data.append({
-                'name': name,
-                'duration_ms': avg_duration_us / 1000.0,
-            })
-            
+        for evt in sorted_events:
+            # Only process CUDA events (kernels) - check if CUDA time is non-zero
+            if evt.cuda_time_total > 0:
+                # cuda_time_total is in microseconds
+                duration_us = evt.cuda_time_total
+                kernel_data.append({
+                    'name': evt.key,
+                    'duration_ms': duration_us / 1000.0,
+                })
+        
         print(f"  Captured {len(kernel_data)} unique kernel events (Averages).")
         return kernel_data
 
@@ -112,32 +86,17 @@ class KernelPowerProfiler:
                              power_log: List[PowerSample], 
                              start_time_sync: float) -> List[KernelMetrics]:
         """
-        Approximates energy consumption by integrating power samples over kernel duration.
-        
-        NOTE: This is highly simplified as the torch.profiler simple output does not 
-        give individual kernel launch times. In a real scenario, this would use 
-        the raw trace to align specific kernel start/end times (microsecond) 
-        with the power log (millisecond).
+        Approximates energy consumption by integrating power samples over kernel duration 
+        (Simplified proportional distribution).
         """
-        
-        # Filter power log to the active duration
         if not power_log:
             print("Warning: Power log is empty. Check NVML setup/permissions.")
             return []
 
-        # Find the time span of the power log relative to the start_time_sync
         log_start_time = power_log[0].timestamp
         log_end_time = power_log[-1].timestamp
         total_duration = log_end_time - log_start_time
         
-        print(f"  Power Log duration: {total_duration * 1000:.2f}ms")
-        
-        # --- Simplified Energy Calculation (Placeholder) ---
-        # Since we only have *average* kernel times, we will simplify the calculation:
-        # 1. Calculate total energy over the full log duration.
-        # 2. Distribute that energy based on the average duration of each kernel type.
-        
-        # Total Energy Approximation over the log period
         total_energy_j = 0.0
         for i in range(len(power_log) - 1):
             p1 = power_log[i]
@@ -146,24 +105,17 @@ class KernelPowerProfiler:
             dt = p2.timestamp - p1.timestamp
             total_energy_j += avg_p * dt
             
-        print(f"  Total Integrated Energy over log period: {total_energy_j:.2f} J")
-        
-        
-        # Total duration of all captured kernel averages
         total_kernel_duration_ms = sum(e['duration_ms'] for e in kernel_events)
         
-        # Distribute energy proportionally based on time
         results: List[KernelMetrics] = []
         for i, event in enumerate(kernel_events):
             kernel_duration_ms = event['duration_ms']
             
-            # Simple proportional energy distribution (highly inaccurate in real life, but necessary for placeholder)
             if total_kernel_duration_ms > 0:
                 energy_share = (kernel_duration_ms / total_kernel_duration_ms) * total_energy_j
             else:
                 energy_share = 0.0
                 
-            # Assume constant power during its average execution time (W = J/s)
             avg_power = energy_share / (kernel_duration_ms / 1000.0) if kernel_duration_ms > 0 else 0.0
             
             results.append(KernelMetrics(
@@ -182,30 +134,25 @@ class KernelPowerProfiler:
                 inputs: Any, 
                 num_runs: int = 1,
                 warmup: bool = True) -> List[KernelMetrics]:
-        """Performs kernel profiling."""
+        # ... (profiling orchestration remains the same)
         
         if warmup:
              print("Running warmup (Kernel Profiler)...")
              with torch.no_grad():
                 _ = self.model(**inputs) if isinstance(inputs, dict) else self.model(inputs)
         
-        # 1. Start Power Polling Thread
         power_thread = PowerLoggerThread(self.device_index, POLL_INTERVAL_MS)
         power_thread.start()
         
-        # 2. Capture Kernel Timeline
-        # Anchor the profiling to a CPU time
         profiling_start_time = time.perf_counter()
         try:
             kernel_timeline = self._get_kernel_timeline(inputs)
         finally:
-            # 3. Stop Power Polling Thread
             power_thread.stop()
             power_thread.join()
         
         power_log = power_thread.get_log()
         
-        # 4. Integrate Data
         self.kernel_results = self._integrate_power_log(
             kernel_timeline, 
             power_log, 
@@ -219,6 +166,46 @@ class KernelPowerProfiler:
         if not self.kernel_results: return pd.DataFrame()
         data = [metrics.to_dict() for metrics in self.kernel_results]
         return pd.DataFrame(data)
+
+    def save_results(self, filename: str = "kernel_power_profile.csv"):
+        """Save detailed results to CSV file and automatically save top 10 energy consumers."""
+        df = self.get_results_dataframe()
+        
+        if df.empty:
+            print("No results to save.")
+            return
+        
+        df.to_csv(filename, index=False)
+        print(f"Kernel results saved to {filename}")
+        
+        # Automatically save top 10
+        self.save_top10_energy_consumers(filename)
+    
+    def save_top10_energy_consumers(self, base_filename: str = "kernel_power_profile.csv"):
+        """Save top 10 energy consumers to a separate CSV file."""
+        df = self.get_results_dataframe()
+        
+        if df.empty:
+            print("No results to save for top 10 energy consumers.")
+            return
+        
+        # Group by kernel name and sum up energy
+        type_summary = df.groupby('kernel_name').agg(
+            total_energy_j=('energy_j', 'sum'),
+            total_duration_ms=('duration_ms', 'sum'),
+            avg_power_w=('avg_power_w', 'mean')
+        ).reset_index()
+        
+        # Get top 10 energy consumers
+        top_energy = type_summary.nlargest(10, 'total_energy_j')[['kernel_name', 'total_duration_ms', 'avg_power_w', 'total_energy_j']]
+        
+        # Generate filename for top 10 CSV
+        base_name = os.path.splitext(base_filename)[0]
+        top10_filename = f"{base_name}_top10_energy.csv"
+        
+        # Save to CSV
+        top_energy.to_csv(top10_filename, index=False)
+        print(f"Top 10 kernel energy consumers saved to {top10_filename}")
 
     def print_summary(self):
         # Implementation of print_summary for Kernels

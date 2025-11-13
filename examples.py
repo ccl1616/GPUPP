@@ -53,6 +53,7 @@ def example_kernel_forward():
     
     # Show results
     profiler.print_summary()
+    profiler.save_results("kernel_demo_profile.csv")
 
 
 # Example 3: LLaMA generation with KernelPowerProfiler (More realistic)

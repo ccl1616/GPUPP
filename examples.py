@@ -36,6 +36,7 @@ def example_layer_forward():
     
     # Show results
     profiler.print_summary()
+    profiler.save_results("layer_demo_profile.csv")
 
 
 # Example 2: Profile the same model with KernelPowerProfiler

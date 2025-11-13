@@ -10,6 +10,7 @@ import time
 import pandas as pd
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
+import os
 from common import GPUMonitor # Use shared utility
 
 @dataclass
@@ -30,8 +31,7 @@ class LayerMetrics:
 
 
 class LayerPowerProfiler:
-    """Main profiler class for tracking per-layer power consumption using hooks."""
-    
+    # ... (init, hook methods, profile method remain the same)
     def __init__(self, model: torch.nn.Module, device_index: int = 0):
         self.model = model
         # Use shared GPUMonitor
@@ -130,14 +130,59 @@ class LayerPowerProfiler:
                 self._remove_hooks()
         
         return self.layer_results
-    
-    # --- Other utility methods (profile_generation, get_results_dataframe, etc.) ---
-    # These methods remain largely the same, using self.layer_results
-    
+
     def get_results_dataframe(self) -> pd.DataFrame:
         if not self.layer_results: return pd.DataFrame()
         data = [metrics.to_dict() for metrics in self.layer_results]
         return pd.DataFrame(data)
+
+    def get_summary_stats(self) -> pd.DataFrame:
+        """Get summary statistics per layer"""
+        df = self.get_results_dataframe()
+        
+        if df.empty:
+            return pd.DataFrame()
+        
+        summary = df.groupby('layer_name').agg({
+            'duration_ms': ['mean', 'std', 'min', 'max'],
+            'avg_power_w': ['mean', 'std', 'min', 'max'],
+            'energy_j': ['sum', 'mean', 'std'],
+        }).round(4)
+        
+        return summary
+
+    def save_results(self, filename: str = "layer_power_profile.csv"):
+        """Save detailed results to CSV file and automatically save top 10 energy consumers."""
+        df = self.get_results_dataframe()
+        
+        if df.empty:
+            print("No results to save.")
+            return
+        
+        df.to_csv(filename, index=False)
+        print(f"Layer results saved to {filename}")
+        
+        # Automatically save top 10
+        self.save_top10_energy_consumers(filename)
+    
+    def save_top10_energy_consumers(self, base_filename: str = "layer_power_profile.csv"):
+        """Save top 10 energy consumers to a separate CSV file."""
+        df = self.get_results_dataframe()
+        
+        if df.empty:
+            print("No results to save for top 10 energy consumers.")
+            return
+        
+        # Get top 10 energy consumers
+        top_power = df.nlargest(10, 'energy_j')[['layer_name', 'exec_id', 'avg_power_w', 'duration_ms', 'energy_j']]
+        
+        # Generate filename for top 10 CSV
+        base_name = os.path.splitext(base_filename)[0]
+        top10_filename = f"{base_name}_top10_energy.csv"
+        
+        # Save to CSV
+        top_power.to_csv(top10_filename, index=False)
+        print(f"Top 10 layer energy consumers saved to {top10_filename}")
 
     def print_summary(self):
         # Implementation of print_summary remains the same
@@ -196,6 +241,7 @@ def main():
     profiler = LayerPowerProfiler(model)
     profiler.profile(inputs, num_runs=1, warmup=True)
     profiler.print_summary()
+    profiler.save_results("layer_demo_profile.csv") # Added Save
 
 if __name__ == "__main__":
     main()

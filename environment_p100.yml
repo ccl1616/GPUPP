@@ -1,4 +1,4 @@
-name: gpu-power-profiler-p100
+name: p100
 channels:
   - pytorch
   - nvidia
@@ -31,10 +31,11 @@ dependencies:
   - pip
   - pip:
     # PyTorch CUDA 11.7 specific builds (required for Tesla P100)
-    - torch==2.0.1+cu117
-    - torchvision==0.15.2+cu117
-    - torchaudio==2.0.2+cu117
-    - --index-url https://download.pytorch.org/whl/cu117
+    - torch==2.1.0
+    - torchvision==0.16.0
+    - torchaudio==2.1.0
+    - --index-url https://download.pytorch.org/whl/cu121
+
 
 # Environment metadata
 variables:

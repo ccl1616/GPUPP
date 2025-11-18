@@ -9,12 +9,6 @@ dependencies:
   # Python version
   - python=3.10
 
-  # Core PyTorch ecosystem (Tesla P100 compatible versions)
-  - pytorch=2.0.1
-  - torchvision=0.15.2
-  - torchaudio=2.0.2
-  - cudatoolkit=11.7
-
   # Transformers and related ML libraries
   - transformers=4.35.0
   - tokenizers=0.14.1

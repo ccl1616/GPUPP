@@ -59,7 +59,7 @@ def example_kernel_forward():
 def example_llama_generation_layer():
     """Profile LLaMA model during text generation"""
     print("\n" + "="*60)
-    print("Example 2: LLaMA Text Generation")
+    print("Example 3: LLaMA Text Generation with LayerPowerProfiler")
     print("="*60)
     
     from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -97,11 +97,11 @@ def example_llama_generation_layer():
     summary = profiler.get_summary_stats()
     summary.to_csv("llama_generation_level_summary.csv")
 
-# Example 4: LLaMA generation with KernelPowerProfiler
+# Example 4: Profile LLaMA model during text generation with KernelPowerProfiler
 def example_llama_generation_kernel():
     """Profile LLaMA model during text generation with the Kernel Profiler"""
     print("\n" + "#"*60)
-    print("Example 3: LLaMA Kernel Generation (Approximation)")
+    print("Example 4: LLaMA Text Generation with KernelPowerProfiler")
     print("#"*60)
     
     from transformers import AutoTokenizer, AutoModelForCausalLM

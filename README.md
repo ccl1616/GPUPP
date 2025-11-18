@@ -108,10 +108,10 @@ The `KernelPowerProfiler` tracks GPU power consumption at the **CUDA kernel leve
 - Supports profiling of forward passes (reference example 2 and example 4)
 
 **Metrics tracked:**
+- `kernel_name`: Name/type of the CUDA kernel
 - `duration_ms`: Execution time for each kernel (from torch.profiler)
 - `avg_power_w`: Average power draw during kernel execution (estimated)
 - `energy_j`: Approximated energy consumption (integrated from power samples)
-- `kernel_name`: Name/type of the CUDA kernel
 
 **Use cases:**
 - Identify energy-intensive CUDA kernels in model

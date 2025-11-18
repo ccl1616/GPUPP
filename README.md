@@ -36,13 +36,13 @@ GPUPP/
 python examples.py <example ID> # available example ID: 1-4
 ```
 
-### Examples options
+### Example options
 1. Profile a dummy model with LayerPowerProfiler
 2. Profile a dummy model with KernelPowerProfiler
 3. Profile LLaMA model during text generation with LayerPowerProfiler
 4. Profile LLaMA model during text generation with KernelPowerProfiler
 
-## Example results
+### Example results
 ```
 $ python examples.py 1
 ============================================================

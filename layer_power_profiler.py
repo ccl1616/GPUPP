@@ -130,6 +130,49 @@ class LayerPowerProfiler:
                 self._remove_hooks()
         
         return self.layer_results
+    
+    def profile_generation(self,
+                          inputs: Any,
+                          max_new_tokens: int = 50,
+                          warmup: bool = True,
+                          **generate_kwargs) -> List[LayerMetrics]:
+        """
+        Profile the model during text generation
+        
+        Args:
+            inputs: Model inputs
+            max_new_tokens: Maximum number of tokens to generate
+            warmup: Whether to do a warmup run
+            **generate_kwargs: Additional arguments for model.generate()
+            
+        Returns:
+            List of LayerMetrics for all layers
+        """
+        self.layer_results.clear()
+        self.exec_counter = 0
+        
+        # Check if model has generate method
+        if not hasattr(self.model, 'generate'):
+            raise ValueError("Model does not have a generate() method")
+        
+        # Warmup
+        if warmup:
+            print("Running warmup...")
+            with torch.no_grad():
+                _ = self.model.generate(**inputs, max_new_tokens=1)
+        
+        # Profiling
+        print("Profiling generation...")
+        self._register_hooks()
+        
+        try:
+            with torch.no_grad():
+                _ = self.model.generate(**inputs, max_new_tokens=max_new_tokens, **generate_kwargs)
+        finally:
+            self._remove_hooks()
+        
+        print(f"Profiling complete. Collected {len(self.layer_results)} layer measurements.")
+        return self.layer_results
 
     def get_results_dataframe(self) -> pd.DataFrame:
         if not self.layer_results: return pd.DataFrame()

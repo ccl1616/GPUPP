@@ -1,0 +1,9 @@
+kernel_name,total_duration_ms,avg_power_w,total_energy_j
+ProfilerStep*,0.091,1775.2374671044588,0.16154660950650576
+aten::addmm,0.085,1775.237467104459,0.15089518470387903
+aten::linear,0.085,1775.237467104459,0.15089518470387903
+maxwell_sgemm_128x32_tn,0.063,1775.237467104459,0.11183996042758092
+"void splitKreduce_kernel<32, 16, int, float, float, float, float, true, true, false>(cublasSplitKParams<float>, float const*, float const*, float*, float const*, float const*, float const*, float const*, float*, void*, long, float*, int*)",0.022,1775.2374671044588,0.039055224276298095
+aten::clamp_min,0.006,1775.2374671044588,0.010651424802626753
+aten::relu,0.006,1775.2374671044588,0.010651424802626753
+"void at::native::vectorized_elementwise_kernel<4, at::native::(anonymous namespace)::launch_clamp_scalar(at::TensorIteratorBase&, c10::Scalar, c10::Scalar, at::native::detail::ClampLimits)::{lambda()#1}::operator()() const::{lambda()#7}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2> >(int, at::native::(anonymous namespace)::launch_clamp_scalar(at::TensorIteratorBase&, c10::Scalar, c10::Scalar, at::native::detail::ClampLimits)::{lambda()#1}::operator()() const::{lambda()#7}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>)",0.006,1775.2374671044588,0.010651424802626753

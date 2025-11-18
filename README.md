@@ -15,8 +15,11 @@ A clean, modular pipeline for monitoring and recording GPU power usage for each 
 This project was tested on Cloudlab c240g5 with P100 GPU. The env file can be used to quickly create a conpatible environment. NVIDIA GPU with NVML support is required.
 ```bash
 # make sure you have conda installed
-conda env create -f environment_p100.yml
-conda activate p100
+$ conda env create -f environment_p100.yml
+$ conda activate p100
+
+# login Huggingface if running example 2 & 4
+$ hf auth login
 ```
 
 ### Repo Structure
@@ -39,8 +42,8 @@ python examples.py <example ID> # available example ID: 1-4
 ### Example options
 1. Profile a dummy model with LayerPowerProfiler
 2. Profile a dummy model with KernelPowerProfiler
-3. Profile LLaMA model during text generation with LayerPowerProfiler 📌 Remember to login by Huggingface credentials
-4. Profile LLaMA model during text generation with KernelPowerProfiler 📌 Remember to login by Huggingface credentials
+3. Profile LLaMA model during text generation with LayerPowerProfiler 📌 Huggingface credentials required
+4. Profile LLaMA model during text generation with KernelPowerProfiler 📌 Huggingface credentials required
 
 ### Example results
 ```
